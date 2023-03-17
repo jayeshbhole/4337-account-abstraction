@@ -45,7 +45,8 @@ const config: HardhatUserConfig = {
     }],
     overrides: {
       'contracts/core/EntryPoint.sol': optimizedComilerSettings,
-      'contracts/samples/SimpleAccount.sol': optimizedComilerSettings
+      'contracts/samples/SimpleAccount.sol': optimizedComilerSettings,
+      'contracts/humanwallet/HumanAccount.sol': optimizedComilerSettings
     }
   },
   networks: {
@@ -54,7 +55,7 @@ const config: HardhatUserConfig = {
     localgeth: { url: 'http://localgeth:8545' },
     goerli: getNetwork('goerli'),
     sepolia: getNetwork('sepolia'),
-    proxy: getNetwork1('http://localhost:8545')
+    proxy: getNetwork1('http://127.0.0.1:8545')
   },
   mocha: {
     timeout: 10000
