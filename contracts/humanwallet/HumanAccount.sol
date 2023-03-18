@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import "../core/BaseAccount.sol";
+import "hardhat/console.sol";
 
 /**
  * minimal account.
@@ -30,11 +31,10 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
     string public username;
 
     address private immutable factory;
-    address private immutable aclModule;
 
     // access control for device and guardian keys
     mapping(address => bool) public deviceKeys;
-    mapping(address => bool) public guardianKeys;
+    // mapping(address => bool) public guardianKeys;
 
     IEntryPoint private immutable _entryPoint;
 
@@ -71,12 +71,10 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
 
     constructor(
         IEntryPoint anEntryPoint,
-        address _factory,
-        address _aclModule
+        address _factory
     ) {
         _entryPoint = anEntryPoint;
         factory = _factory;
-        aclModule = _aclModule;
         owner = _factory;
         _disableInitializers();
     }
@@ -87,6 +85,32 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
             msg.sender == owner || msg.sender == address(this),
             "only owner"
         );
+    }
+
+    function _onlyOwnerSignature(
+        bytes calldata signature,
+        bytes32 dataHash
+    )internal view{
+        bytes32 hash = dataHash.toEthSignedMessageHash();
+        require(hash.recover(signature) == owner, "account_acl: unauthorised request");
+    }
+
+    function registerDeviceKey(address deviceKey, bytes calldata signature) external onlyOwner {
+        _onlyOwnerSignature(signature, keccak256(abi.encode(deviceKey)));
+
+        require(deviceKeys[deviceKey] == false, "account_acl: device key already registered");
+        require(deviceKey != address(0) || deviceKey != owner, "account_acl: invalid device key");
+
+        deviceKeys[deviceKey] = true;
+    }
+
+    function removeDeviceKey(address deviceKey, bytes calldata signature) external onlyOwner {
+        _onlyOwnerSignature(signature, keccak256(abi.encode(deviceKey, _nonce)));
+
+        require(deviceKeys[deviceKey] == true, "account_acl: device key not registered");
+        require(deviceKey != address(0) || deviceKey != owner, "account_acl: invalid device key");
+
+        deviceKeys[deviceKey] = false;
     }
 
     /**
@@ -162,8 +186,12 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
         bytes32 userOpHash
     ) internal virtual override returns (uint256 validationData) {
         bytes32 hash = userOpHash.toEthSignedMessageHash();
-        if (owner != hash.recover(userOp.signature))
+        address signer = hash.recover(userOp.signature);
+
+        if (!(signer == owner || deviceKeys[signer])){
+            console.log("!!! validation failed !!!");
             return SIG_VALIDATION_FAILED;
+        }
         return 0;
     }
 
