@@ -99,25 +99,24 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   const deploy_event = receipt.events?.find(
     (e) => e?.event === 'DeployedHumanAccount'
   )
-  const deployedAcountAddress = deploy_event?.args?.account
-  console.log('==HumanAccount1 addr=', deployedAcountAddress)
+  const deployedHAAddress = deploy_event?.args?.account
+  console.log('==HumanAccount1 addr=', deployedHAAddress)
 
   const deployedAccount1 = await ethers.getContractAt(
     'HumanAccount',
-    deployedAcountAddress,
+    deployedHAAddress,
     aaOwnerSigner
   )
 
   // connect to pre-deployed account
-  await aaOwnerSigner.connectAccountAddress(deployedAcountAddress)
+  await aaOwnerSigner.connectAccountAddress(deployedHAAddress)
 
-  const myAddress = await aaOwnerSigner.getAddress()
-  console.log('===myAddress=', myAddress)
+  // const humanAccountAddress = await aaOwnerSigner.getAddress()
 
-  if ((await provider.getBalance(myAddress)) < parseEther('0.01')) {
+  if ((await provider.getBalance(deployedHAAddress)) < parseEther('0.01')) {
     console.log('prefund account')
     await ethersOwnerSigner.sendTransaction({
-      to: myAddress,
+      to: deployedHAAddress,
       value: parseEther('0.01')
     })
   }
@@ -129,22 +128,24 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
     entryPointAddress,
     ethersOwnerSigner
   )
-  console.log('account address=', myAddress)
-  let preDeposit = await entryPoint.balanceOf(myAddress)
+  console.log('account address=', deployedHAAddress)
+  let preDeposit = await entryPoint.balanceOf(deployedHAAddress)
   console.log(
     'current deposit=',
     preDeposit,
     'current balance',
-    await provider.getBalance(myAddress)
+    await provider.getBalance(deployedHAAddress)
   )
 
   if (preDeposit.lte(parseEther('0.005'))) {
     console.log('depositing for account')
-    await entryPoint.depositTo(myAddress, { value: parseEther('0.01') })
-    preDeposit = await entryPoint.balanceOf(myAddress)
+    await entryPoint.depositTo(deployedHAAddress, {
+      value: parseEther('0.01')
+    })
+    preDeposit = await entryPoint.balanceOf(deployedHAAddress)
   }
 
-  const prebalance = await provider.getBalance(myAddress)
+  const prebalance = await provider.getBalance(deployedHAAddress)
   console.log(
     'balance=',
     prebalance.div(1e9).toString(),
@@ -156,7 +157,6 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   const ethersDeviceSigner = provider.getSigner(1)
 
   const devicePubKey = await ethersDeviceSigner.getAddress()
-  let humanAccountNonce = await deployedAccount1.nonce()
   console.log('\n________\ndevicePubKey=', devicePubKey)
 
   const registerRequestHash = ethers.utils.keccak256(
@@ -176,14 +176,13 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   )
   await registerKey1Tx.wait()
 
-  humanAccountNonce = await deployedAccount1.nonce()
-
   const aaDeviceSigner = new AADeviceSigner(
     ethersDeviceSigner,
     entryPointAddress,
     sendUserOp,
     index
   )
+  await aaDeviceSigner.connectAccountAddress(deployedHAAddress)
 
   const testCounter = TestCounter__factory.connect(
     testCounterAddress,
@@ -207,8 +206,10 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
       `https://dashboard.tenderly.co/tx/${netname}/${rcpt.transactionHash}/gas-usage`
     )
   }
-  const gasPaid = prebalance.sub(await provider.getBalance(myAddress))
-  const depositPaid = preDeposit.sub(await entryPoint.balanceOf(myAddress))
+  const gasPaid = prebalance.sub(await provider.getBalance(deployedHAAddress))
+  const depositPaid = preDeposit.sub(
+    await entryPoint.balanceOf(deployedHAAddress)
+  )
   console.log(
     'paid (from balance)=',
     gasPaid.toNumber() / 1e9,
