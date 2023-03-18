@@ -5,6 +5,7 @@ import '@openzeppelin/contracts/utils/Create2.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 
 import './HumanAccount.sol';
+import 'hardhat/console.sol';
 
 /**
  * A sample factory contract for HumanAccount
@@ -24,12 +25,12 @@ contract HumanAccountFactory {
         _;
     }
 
+    event DeployedHumanAccount(address account, string username);
+
     constructor(IEntryPoint _entryPoint) {
-        accountImplementation = new HumanAccount(
-            _entryPoint,
-            address(this),
-            aclModule
-        );
+        accountImplementation = new HumanAccount(_entryPoint, address(this));
+
+        console.log('HumanAccountFactory deployed');
     }
 
     /**
@@ -43,6 +44,8 @@ contract HumanAccountFactory {
         string calldata accountUsername,
         uint256 salt
     ) public returns (HumanAccount ret) {
+        console.log('DeployedHumanAccountRequest!!!');
+
         address addr = getAddress(accountUsername, salt);
         uint codeSize = addr.code.length;
         if (codeSize > 0) {
@@ -63,9 +66,16 @@ contract HumanAccountFactory {
             )
         );
 
+        emit DeployedHumanAccount(address(ret), accountUsername);
+
+        console.log(
+            'DeployedHumanAccount %s %s',
+            address(ret),
+            accountUsername
+        );
+
         // set owner of account. called once, and only by the factory.
         ret.setOwnerKey(msg.sender);
-
         usernameToAddress[accountUsername] = address(ret);
     }
 
