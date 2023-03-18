@@ -38,14 +38,8 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
 
     IEntryPoint private immutable _entryPoint;
 
-    event HumanAccountInitialized(
-        IEntryPoint indexed entryPoint,
-        string indexed username
-    );
-    event HumanAccountOwnerChanged(
-        IEntryPoint indexed entryPoint,
-        string indexed newOwner
-    );
+    event HumanAccountInitialized(IEntryPoint indexed entryPoint, string indexed username);
+    event HumanAccountOwnerChanged(IEntryPoint indexed entryPoint, string indexed newOwner);
 
     modifier onlyOwner() {
         _onlyOwner();
@@ -69,10 +63,7 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
     // solhint-disable-next-line no-empty-blocks
     receive() external payable {}
 
-    constructor(
-        IEntryPoint anEntryPoint,
-        address _factory
-    ) {
+    constructor(IEntryPoint anEntryPoint, address _factory) {
         _entryPoint = anEntryPoint;
         factory = _factory;
         owner = _factory;
@@ -81,16 +72,10 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
 
     function _onlyOwner() internal view {
         //directly from EOA owner, or through the account itself (which gets redirected through execute())
-        require(
-            msg.sender == owner || msg.sender == address(this),
-            "only owner"
-        );
+        require(msg.sender == owner || msg.sender == address(this), "only owner");
     }
 
-    function _onlyOwnerSignature(
-        bytes calldata signature,
-        bytes32 dataHash
-    )internal view{
+    function _onlyOwnerSignature(bytes calldata signature, bytes32 dataHash) internal view {
         bytes32 hash = dataHash.toEthSignedMessageHash();
         require(hash.recover(signature) == owner, "account_acl: unauthorised request");
     }
@@ -116,11 +101,7 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
     /**
      * execute a transaction (called directly from owner, or by entryPoint)
      */
-    function execute(
-        address dest,
-        uint256 value,
-        bytes calldata func
-    ) external {
+    function execute(address dest, uint256 value, bytes calldata func) external {
         _requireFromEntryPointOrOwner();
         _call(dest, value, func);
     }
@@ -128,10 +109,7 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
     /**
      * execute a sequence of transactions
      */
-    function executeBatch(
-        address[] calldata dest,
-        bytes[] calldata func
-    ) external {
+    function executeBatch(address[] calldata dest, bytes[] calldata func) external {
         _requireFromEntryPointOrOwner();
         require(dest.length == func.length, "wrong array lengths");
         for (uint256 i = 0; i < dest.length; i++) {
@@ -174,9 +152,7 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
     }
 
     /// implement template method of BaseAccount
-    function _validateAndUpdateNonce(
-        UserOperation calldata userOp
-    ) internal override {
+    function _validateAndUpdateNonce(UserOperation calldata userOp) internal override {
         require(_nonce++ == userOp.nonce, "account: invalid nonce");
     }
 
@@ -188,15 +164,12 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
         bytes32 hash = userOpHash.toEthSignedMessageHash();
         address signer = hash.recover(userOp.signature);
 
-        if (!(signer == owner || deviceKeys[signer])){
-            console.log("!!! validation failed !!!");
-            return SIG_VALIDATION_FAILED;
-        }
+        if (!(signer == owner || deviceKeys[signer])) return SIG_VALIDATION_FAILED;
         return 0;
     }
 
     function _call(address target, uint256 value, bytes memory data) internal {
-        (bool success, bytes memory result) = target.call{value: value}(data);
+        (bool success, bytes memory result) = target.call{ value: value }(data);
         if (!success) {
             assembly {
                 revert(add(result, 32), mload(result))
@@ -215,7 +188,7 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
      * deposit more funds for this account in the entryPoint
      */
     function addDeposit() public payable {
-        entryPoint().depositTo{value: msg.value}(address(this));
+        entryPoint().depositTo{ value: msg.value }(address(this));
     }
 
     /**
@@ -223,16 +196,11 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
      * @param withdrawAddress target to send to
      * @param amount to withdraw
      */
-    function withdrawDepositTo(
-        address payable withdrawAddress,
-        uint256 amount
-    ) public onlyOwner {
+    function withdrawDepositTo(address payable withdrawAddress, uint256 amount) public onlyOwner {
         entryPoint().withdrawTo(withdrawAddress, amount);
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal view override {
+    function _authorizeUpgrade(address newImplementation) internal view override {
         (newImplementation);
         _onlyOwner();
     }
