@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.12;
 
-import '@openzeppelin/contracts/utils/Create2.sol';
-import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
+import "@openzeppelin/contracts/utils/Create2.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import './HumanAccount.sol';
-import 'hardhat/console.sol';
+import "./HumanAccount.sol";
+import "hardhat/console.sol";
 
 /**
  * A sample factory contract for HumanAccount
@@ -21,7 +21,7 @@ contract HumanAccountFactory {
     mapping(string => address) public usernameToAddress;
 
     modifier onlyACLModule() {
-        require(msg.sender == aclModule, 'only ACLModule can call this method');
+        require(msg.sender == aclModule, "only ACLModule can call this method");
         _;
     }
 
@@ -30,7 +30,7 @@ contract HumanAccountFactory {
     constructor(IEntryPoint _entryPoint) {
         accountImplementation = new HumanAccount(_entryPoint, address(this));
 
-        console.log('HumanAccountFactory deployed');
+        console.log("HumanAccountFactory deployed");
     }
 
     /**
@@ -44,8 +44,6 @@ contract HumanAccountFactory {
         string calldata accountUsername,
         uint256 salt
     ) public returns (HumanAccount ret) {
-        console.log('DeployedHumanAccountRequest!!!');
-
         address addr = getAddress(accountUsername, salt);
         uint codeSize = addr.code.length;
         if (codeSize > 0) {
@@ -54,7 +52,7 @@ contract HumanAccountFactory {
 
         require(
             usernameToAddress[accountUsername] == address(0),
-            'factory: username already taken'
+            "factory: username already taken"
         );
 
         ret = HumanAccount(
@@ -68,11 +66,7 @@ contract HumanAccountFactory {
 
         emit DeployedHumanAccount(address(ret), accountUsername);
 
-        console.log(
-            'DeployedHumanAccount %s %s',
-            address(ret),
-            accountUsername
-        );
+        console.log("DeployedHumanAccount %s %s", address(ret), accountUsername);
 
         // set owner of account. called once, and only by the factory.
         ret.setOwnerKey(msg.sender);
@@ -94,10 +88,7 @@ contract HumanAccountFactory {
                         type(ERC1967Proxy).creationCode,
                         abi.encode(
                             address(accountImplementation),
-                            abi.encodeCall(
-                                HumanAccount.initialize,
-                                (accountUsername)
-                            )
+                            abi.encodeCall(HumanAccount.initialize, (accountUsername))
                         )
                     )
                 )
