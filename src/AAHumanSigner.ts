@@ -1,32 +1,32 @@
-import { BigNumber, Bytes, ethers, Event, Signer } from 'ethers'
-import { zeroAddress } from 'ethereumjs-util'
+import { TransactionResponse } from '@ethersproject/abstract-provider'
+import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/index'
+import { BytesLike, hexValue } from '@ethersproject/bytes'
+import { Deferrable, resolveProperties } from '@ethersproject/properties'
 import {
   BaseProvider,
   Provider,
   TransactionRequest
 } from '@ethersproject/providers'
-import { Deferrable, resolveProperties } from '@ethersproject/properties'
-import {
-  EntryPoint,
-  EntryPoint__factory,
-  ERC1967Proxy__factory,
-  HumanAccount,
-  HumanAccount__factory
-} from '../typechain'
-import { BytesLike, hexValue } from '@ethersproject/bytes'
-import { TransactionResponse } from '@ethersproject/abstract-provider'
-import { fillAndSign, getUserOpHash } from '../test/UserOp'
-import { UserOperation } from '../test/UserOperation'
-import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/index'
-import { clearInterval } from 'timers'
-import { Create2Factory } from './Create2Factory'
+import { zeroAddress } from 'ethereumjs-util'
+import { BigNumber, Bytes, ethers, Event, Signer } from 'ethers'
 import {
   getCreate2Address,
   hexConcat,
   Interface,
   keccak256
 } from 'ethers/lib/utils'
+import { clearInterval } from 'timers'
 import { HashZero } from '../test/testutils'
+import { fillAndSign, getUserOpHash } from '../test/UserOp'
+import { UserOperation } from '../test/UserOperation'
+import {
+  EntryPoint,
+  EntryPoint__factory,
+  ERC1967Proxy__factory,
+  HumanAccount,
+  HumanAccount__factory,
+  HumanAccountFactory__factory
+} from '../typechain'
 
 export type SendUserOp = (
   userOp: UserOperation
@@ -256,6 +256,8 @@ export class AADeviceProvider extends BaseProvider {
  */
 export class AAHumanSigner extends Signer {
   _account?: HumanAccount
+  public accountUsername: string
+  public factoryAddress: string
 
   implementationAddress?: string
 
@@ -274,14 +276,23 @@ export class AAHumanSigner extends Signer {
   constructor(
     readonly signer: Signer,
     readonly entryPointAddress: string,
+    readonly _factoryAddress: string,
     readonly sendUserOp: SendUserOp,
     readonly index = 0,
     readonly provider = signer.provider,
-    readonly _implementationAddress?: string
+    readonly _accountUsername: string
   ) {
     super()
     this.entryPoint = EntryPoint__factory.connect(entryPointAddress, signer)
-    this.implementationAddress = _implementationAddress
+    this.accountUsername = _accountUsername
+    this.factoryAddress = _factoryAddress
+
+    const anticipatedAddress = ethers.utils.getContractAddress({
+      from: this.factoryAddress,
+      nonce: 1
+    })
+
+    this.implementationAddress = anticipatedAddress
   }
 
   // connect to a specific pre-deployed address
@@ -303,25 +314,71 @@ export class AAHumanSigner extends Signer {
     throw new Error('connect not implemented')
   }
 
+  // deployment address calculated by the using _deploymentTransaction
   async _deploymentAddress(): Promise<string> {
     return getCreate2Address(
-      Create2Factory.contractAddress,
+      this.factoryAddress,
       HashZero,
       keccak256(await this._deploymentTransaction())
     )
   }
 
-  // TODO TODO: THERE IS UTILS.getAccountInitCode - why not use that?
+  async getFactoryDeploymentAddress(): Promise<string> {
+    const humanAccountFactory = HumanAccountFactory__factory.connect(
+      this.factoryAddress,
+      this.signer
+    )
+
+    return await humanAccountFactory.getAddress(this.accountUsername, 0)
+  }
+
+  async setImplementationAddress(): Promise<void> {
+    if (this.provider == null) {
+      return
+    }
+
+    // factory nonce
+    const humanAccountFactory = HumanAccountFactory__factory.connect(
+      this.factoryAddress,
+      this.signer
+    )
+
+    const anticipatedAddress = ethers.utils.getContractAddress({
+      from: this.factoryAddress,
+      nonce: 1
+    })
+
+    const actualAddress = await humanAccountFactory.accountImplementation()
+
+    console.log('\t\tanticipated implementation address=', anticipatedAddress)
+    console.log('\t\tactual implementation address=', actualAddress)
+
+    this.implementationAddress = anticipatedAddress
+  }
+
+  // NOTE: initCode used by the factory to create the account
   async _deploymentTransaction(): Promise<BytesLike> {
-    // const implementationAddress = zeroAddress() // TODO: pass implementation in here
-    const ownerAddress = await this.signer.getAddress()
     const initializeCall = new Interface(
       HumanAccount__factory.abi
-    ).encodeFunctionData('initialize', [ownerAddress])
+    ).encodeFunctionData('initialize', [this.accountUsername])
+
     return new ERC1967Proxy__factory(this.signer).getDeployTransaction(
       this.implementationAddress ?? zeroAddress(),
       initializeCall
     ).data!
+  }
+
+  // NOTE: calldata to call the factory to create the account
+  async _factoryDeploymentTransaction(): Promise<BytesLike> {
+    const initializeCall = new Interface(
+      HumanAccountFactory__factory.abi
+    ).encodeFunctionData('createAccount', [
+      this.accountUsername,
+      HashZero,
+      await this.signer.getAddress()
+    ])
+
+    return initializeCall
   }
 
   async getAddress(): Promise<string> {
@@ -459,7 +516,7 @@ export class AAHumanSigner extends Signer {
 
   async syncAccount(): Promise<void> {
     if (this._account == null) {
-      const address = await this._deploymentAddress()
+      const address = await this.getFactoryDeploymentAddress()
       this._account = HumanAccount__factory.connect(address, this.signer)
     }
 
@@ -482,6 +539,11 @@ export class AAHumanSigner extends Signer {
     return this._isPhantom
   }
 
+  async getCreateAccountCode(): Promise<string> {
+    const deploymentCode = await this._factoryDeploymentTransaction()
+    return hexConcat([this.factoryAddress, deploymentCode])
+  }
+
   async _createUserOperation(
     transaction: Deferrable<TransactionRequest>
   ): Promise<UserOperation> {
@@ -490,14 +552,7 @@ export class AAHumanSigner extends Signer {
 
     let initCode: BytesLike | undefined
     if (this._isPhantom) {
-      const initCallData = new Create2Factory(
-        this.provider!
-      ).getDeployTransactionCallData(
-        hexValue(await this._deploymentTransaction()),
-        HashZero
-      )
-
-      initCode = hexConcat([Create2Factory.contractAddress, initCallData])
+      initCode = await this.getCreateAccountCode()
     }
     const execFromEntryPoint = await this._account!.populateTransaction.execute(
       tx.to!,
@@ -515,7 +570,7 @@ export class AAHumanSigner extends Signer {
     const userOp = await fillAndSign(
       {
         sender: this._account!.address,
-        // initCode,
+        initCode,
         nonce: initCode == null ? tx.nonce : this.index,
         callData: execFromEntryPoint.data!,
         callGasLimit: tx.gasLimit,
