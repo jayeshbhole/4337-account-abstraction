@@ -66,8 +66,10 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
     constructor(IEntryPoint anEntryPoint, address _factory) {
         _entryPoint = anEntryPoint;
         factory = _factory;
-        owner = _factory;
+        // owner = _factory;
         _disableInitializers();
+
+        console.log("human account constructor", address(this));
     }
 
     function _onlyOwner() internal view {
@@ -90,7 +92,7 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
     }
 
     function removeDeviceKey(address deviceKey, bytes calldata signature) external onlyOwner {
-        _onlyOwnerSignature(signature, keccak256(abi.encode(deviceKey, _nonce)));
+        _onlyOwnerSignature(signature, keccak256(abi.encode(deviceKey)));
 
         require(deviceKeys[deviceKey] == true, "account_acl: device key not registered");
         require(deviceKey != address(0) || deviceKey != owner, "account_acl: invalid device key");
