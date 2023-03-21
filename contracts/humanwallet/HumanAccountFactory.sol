@@ -42,7 +42,8 @@ contract HumanAccountFactory {
 
     function createAccount(
         string calldata accountUsername,
-        uint256 salt
+        uint256 salt,
+        address ownerKey
     ) public returns (HumanAccount ret) {
         address addr = getAddress(accountUsername, salt);
         uint codeSize = addr.code.length;
@@ -69,7 +70,7 @@ contract HumanAccountFactory {
         console.log("DeployedHumanAccount %s %s", address(ret), accountUsername);
 
         // set owner of account. called once, and only by the factory.
-        ret.setOwnerKey(msg.sender);
+        ret.setOwnerKey(ownerKey);
         usernameToAddress[accountUsername] = address(ret);
     }
 
