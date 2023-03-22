@@ -1,5 +1,5 @@
 {
-  "name": "@account-abstraction/contracts",
+  "name": "@humanwallet/contracts",
   "description": "Account Abstraction (EIP 4337) contracts",
   "version": "0.5.0",
   "main": "./dist/index.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/eth-infinitism/account-abstraction"
+    "url": "https://github.com/jayeshbhole/4337-account-abstraction"
   },
   "keywords": [
     "solidity",
@@ -21,7 +21,7 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/eth-infinitism/account-abstraction/issues"
+    "url": "https://github.com/jayeshbhole/4337-account-abstraction/issues"
   },
   "devDependencies": {
     "@gnosis.pm/safe-contracts": "^1.3.0",

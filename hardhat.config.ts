@@ -69,8 +69,7 @@ const config: HardhatUserConfig = {
     // github action starts localgeth service, for gas calculations
     localgeth: { url: 'http://localgeth:8545' },
     goerli: {
-      // ...getNetwork('goerli')
-      url: 'https://node.stackup.sh/v1/rpc/b897c9c892dcbdafdca0dc2c36bd7110f538e47f7c9671b8e9123593bb424ca4',
+      ...getNetwork('goerli'),
       accounts: { mnemonic: process.env.MNEMONIC ?? mnemonic }
     },
     sepolia: getNetwork('sepolia'),
@@ -81,7 +80,7 @@ const config: HardhatUserConfig = {
       verify: {
         etherscan: {
           apiUrl: 'https://api-testnet.polygonscan.com',
-          apiKey: '31EXVHGVBN613PIMHC9399FH2XVR7W8JFH'
+          apiKey: process.env.POLYGONSCAN_API_KEY
         }
       }
     }
