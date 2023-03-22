@@ -83,50 +83,24 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
     sendUserOp,
     index,
     provider,
-    'HumanAccount_1'
+    'HumanAccount_2'
   )
 
-  // console.log('\n\n====deploy HumanAccountFactory')
-  // // deploy HumanAccount1 by calling HumanAccountFactory
-  // const humanAccountFactoryContract = await ethers.getContractAt(
-  //   'HumanAccountFactory',
-  //   humanAccountFactoryAddress,
-  //   ethersOwnerSigner
-  // )
-  // const createHumanAccount1 = await humanAccountFactoryContract.createAccount(
-  //   'HumanAccount_1',
-  //   0,
-  //   ethersOwnerSigner.getAddress()
-  // )
-  // const receipt = await createHumanAccount1.wait()
-
-  // const deploy_event = receipt.events?.find(
-  //   (e) => e?.event === 'DeployedHumanAccount'
-  // )
-
-  // const humanAccount1Address = deploy_event?.args?.account
-  // console.log('==HumanAccount1 addr=', humanAccount1Address)
   const humanAccount1Address = await aaOwnerSigner.getFactoryDeploymentAddress()
   console.log('==HumanAccount1 addr=', humanAccount1Address)
 
   console.log('/// expected', await aaOwnerSigner._deploymentAddress())
-
-  const deployedAccount1 = await ethers.getContractAt(
-    'HumanAccount',
-    humanAccount1Address,
-    aaOwnerSigner
-  )
 
   // // connect to pre-deployed account
   // await aaOwnerSigner.connectAccountAddress(humanAccount1Address)
 
   const humanAccountAddress = await aaOwnerSigner.getAddress()
 
-  if ((await provider.getBalance(humanAccount1Address)) < parseEther('0.01')) {
+  if ((await provider.getBalance(humanAccount1Address)) < parseEther('0.1')) {
     console.log('prefund account')
     await ethersOwnerSigner.sendTransaction({
       to: humanAccount1Address,
-      value: parseEther('0.01')
+      value: parseEther('0.1')
     })
   }
 
@@ -146,21 +120,16 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
     await provider.getBalance(humanAccount1Address)
   )
 
-  if (preDeposit.lte(parseEther('0.005'))) {
+  if (preDeposit.lte(parseEther('0.1'))) {
     console.log('depositing for account')
     await entryPoint.depositTo(humanAccount1Address, {
-      value: parseEther('0.01')
+      value: parseEther('0.1')
     })
     preDeposit = await entryPoint.balanceOf(humanAccount1Address)
   }
 
   const prebalance = await provider.getBalance(humanAccount1Address)
-  console.log(
-    'balance=',
-    prebalance.div(1e9).toString(),
-    'deposit=',
-    preDeposit.div(1e9).toString()
-  )
+  console.log('balance=', prebalance, 'deposit=', preDeposit)
 
   // use second hardhat account
   const ethersDeviceSigner = provider.getSigner(1)
@@ -168,29 +137,29 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   const devicePubKey = await ethersDeviceSigner.getAddress()
   console.log('\n________\ndevicePubKey=', devicePubKey)
 
-  const registerRequestHash = ethers.utils.keccak256(
-    ethers.utils.defaultAbiCoder.encode(['address'], [devicePubKey])
-  )
-  // sign the public key with the account's private key
-  const sig = await ethersOwnerSigner.signMessage(
-    ethers.utils.arrayify(registerRequestHash)
+  const deployedAccount1 = await ethers.getContractAt(
+    'HumanAccount',
+    humanAccount1Address,
+    aaOwnerSigner
   )
 
-  console.log('===registering device key', devicePubKey)
+  if (!(await deployedAccount1.deviceKeys(devicePubKey))) {
+    console.log('===registering device key', devicePubKey)
+    const registerRequestHash = ethers.utils.keccak256(
+      ethers.utils.defaultAbiCoder.encode(['address'], [devicePubKey])
+    )
+    // sign the public key with the account's private key
+    const sig = await ethersOwnerSigner.signMessage(
+      ethers.utils.arrayify(registerRequestHash)
+    )
 
-  // // register the public key with the smart contract account
-  // // const registerKey1Tx = await deployedAccount1.registerDeviceKey(
-  // //   devicePubKey,
-  // //   sig
-  // // )
-  // // await registerKey1Tx.wait()
-
-  // register the public key with the smart contract account
-  const registerKey1Tx = await deployedAccount1.registerDeviceKey(
-    devicePubKey,
-    sig
-  )
-  await registerKey1Tx.wait()
+    // register the public key with the smart contract account
+    const registerKey1Tx = await deployedAccount1.registerDeviceKey(
+      devicePubKey,
+      sig
+    )
+    await registerKey1Tx.wait()
+  }
 
   const aaDeviceSigner = new AADeviceSigner(
     ethersDeviceSigner,
@@ -203,89 +172,89 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   )
   await aaDeviceSigner.connectAccountAddress(humanAccount1Address)
 
-  // const testCounter = TestCounter__factory.connect(
-  //   testCounterAddress,
-  //   aaDeviceSigner
-  // )
+  const testCounter = TestCounter__factory.connect(
+    testCounterAddress,
+    aaDeviceSigner
+  )
 
-  // console.log('estimate direct call', {
-  //   gasUsed: await testCounter
-  //     .connect(aaDeviceSigner)
-  //     .estimateGas.justemit()
-  //     .then((t) => t.toNumber())
-  // })
-  // const ret = await testCounter.justemit()
-  // console.log('waiting for mine, hash (reqId)=', ret.hash)
-  // const rcpt = await ret.wait()
-  // const netname = await provider.getNetwork().then((net) => net.name)
-  // if (netname !== 'unknown') {
-  //   console.log(
-  //     'rcpt',
-  //     rcpt.transactionHash,
-  //     `https://dashboard.tenderly.co/tx/${netname}/${rcpt.transactionHash}/gas-usage`
-  //   )
-  // }
-  // const gasPaid = prebalance.sub(
-  //   await provider.getBalance(humanAccount1Address)
-  // )
-  // const depositPaid = preDeposit.sub(
-  //   await entryPoint.balanceOf(humanAccount1Address)
-  // )
-  // console.log(
-  //   'paid (from balance)=',
-  //   gasPaid.toNumber() / 1e9,
-  //   'paid (from deposit)',
-  //   depositPaid.div(1e9).toString(),
-  //   'gasUsed=',
-  //   rcpt.gasUsed
-  // )
-  // const logs = await entryPoint.queryFilter('*' as any, rcpt.blockNumber)
-  // console.log(logs.map((e: any) => ({ ev: e.event, ...objdump(e.args!) })))
-  // console.log('1st run gas used:', await evInfo(rcpt))
+  console.log('estimate direct call', {
+    gasUsed: await testCounter
+      .connect(aaDeviceSigner)
+      .estimateGas.justemit()
+      .then((t) => t.toNumber())
+  })
+  const ret = await testCounter.justemit()
+  console.log('waiting for mine, hash (reqId)=', ret.hash)
+  const rcpt = await ret.wait()
+  const netname = await provider.getNetwork().then((net) => net.name)
+  if (netname !== 'unknown') {
+    console.log(
+      'rcpt',
+      rcpt.transactionHash,
+      `https://dashboard.tenderly.co/tx/${netname}/${rcpt.transactionHash}/gas-usage`
+    )
+  }
+  const gasPaid = prebalance.sub(
+    await provider.getBalance(humanAccount1Address)
+  )
+  const depositPaid = preDeposit.sub(
+    await entryPoint.balanceOf(humanAccount1Address)
+  )
+  console.log(
+    'paid (from balance)=',
+    gasPaid.toNumber() / 1e9,
+    'paid (from deposit)',
+    depositPaid.div(1e9).toString(),
+    'gasUsed=',
+    rcpt.gasUsed
+  )
+  const logs = await entryPoint.queryFilter('*' as any, rcpt.blockNumber)
+  console.log(logs.map((e: any) => ({ ev: e.event, ...objdump(e.args!) })))
+  console.log('1st run gas used:', await evInfo(rcpt))
 
-  // const ret1 = await testCounter.justemit()
-  // const rcpt2 = await ret1.wait()
-  // console.log('2nd run:', await evInfo(rcpt2))
+  const ret1 = await testCounter.justemit()
+  const rcpt2 = await ret1.wait()
+  console.log('2nd run:', await evInfo(rcpt2))
 
-  // // remove device key access
-  // const removeRequestHash = ethers.utils.keccak256(
-  //   ethers.utils.defaultAbiCoder.encode(['address'], [devicePubKey])
-  // )
-  // const removeSig = await ethersOwnerSigner.signMessage(
-  //   ethers.utils.arrayify(removeRequestHash)
-  // )
-  // const removeKeyTx = await deployedAccount1.removeDeviceKey(
-  //   devicePubKey,
-  //   removeSig
-  // )
-  // await removeKeyTx.wait()
+  // remove device key access
+  const removeRequestHash = ethers.utils.keccak256(
+    ethers.utils.defaultAbiCoder.encode(['address'], [devicePubKey])
+  )
+  const removeSig = await ethersOwnerSigner.signMessage(
+    ethers.utils.arrayify(removeRequestHash)
+  )
+  const removeKeyTx = await deployedAccount1.removeDeviceKey(
+    devicePubKey,
+    removeSig
+  )
+  await removeKeyTx.wait()
 
-  // // try to call again
-  // try {
-  //   const ret2 = await testCounter.justemit()
-  //   const rcpt3 = await ret2.wait()
-  //   console.log('3rd run:', await evInfo(rcpt3))
-  // } catch (e) {
-  //   console.log('expected error in sig validation')
-  // }
+  // try to call again
+  try {
+    const ret2 = await testCounter.justemit()
+    const rcpt3 = await ret2.wait()
+    console.log('3rd run:', await evInfo(rcpt3))
+  } catch (e) {
+    console.log('expected error in sig validation')
+  }
 
-  // async function evInfo(rcpt: TransactionReceipt): Promise<any> {
-  //   // TODO: checking only latest block...
-  //   const block = rcpt.blockNumber
-  //   const ev = await entryPoint.queryFilter(
-  //     entryPoint.filters.UserOperationEvent(),
-  //     block
-  //   )
-  //   // if (ev.length === 0) return {}
-  //   return ev.map((event) => {
-  //     const { nonce, actualGasUsed } = event.args
-  //     const gasUsed = rcpt.gasUsed.toNumber()
-  //     return {
-  //       nonce: nonce.toNumber(),
-  //       gasPaid,
-  //       gasUsed: gasUsed,
-  //       diff: gasUsed - actualGasUsed.toNumber()
-  //     }
-  //   })
-  // }
+  async function evInfo(rcpt: TransactionReceipt): Promise<any> {
+    // TODO: checking only latest block...
+    const block = rcpt.blockNumber
+    const ev = await entryPoint.queryFilter(
+      entryPoint.filters.UserOperationEvent(),
+      block
+    )
+    // if (ev.length === 0) return {}
+    return ev.map((event) => {
+      const { nonce, actualGasUsed } = event.args
+      const gasUsed = rcpt.gasUsed.toNumber()
+      return {
+        nonce: nonce.toNumber(),
+        gasPaid,
+        gasUsed: gasUsed,
+        diff: gasUsed - actualGasUsed.toNumber()
+      }
+    })
+  }
 })()

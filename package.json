@@ -20,6 +20,7 @@
     "ci-gas-calc": "yarn gas-calc && yarn check-gas-reports",
     "check-gas-reports": "./scripts/check-gas-reports",
     "runop": "hardhat run src/runop.ts ",
+    "runop-h": "hardhat run src/runopHuman.ts ",
     "runop-goerli": "AA_URL=https://account-abstraction-goerli.nethermind.io yarn runop --network goerli",
     "runop3": "hardhat run src/runop3.ts "
   },
@@ -35,6 +36,7 @@
     "@typescript-eslint/eslint-plugin": "^5.30.5",
     "@typescript-eslint/parser": "^5.30.5",
     "chai": "^4.3.4",
+    "dotenv": "^16.0.3",
     "eslint": "^8.19.0",
     "eslint-config-standard": "^17.0.0",
     "eslint-config-standard-with-typescript": "^21.0.1",

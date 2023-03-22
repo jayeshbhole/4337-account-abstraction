@@ -116,9 +116,9 @@ export const DefaultsForUserOp: UserOperation = {
   callData: '0x',
   callGasLimit: 0,
   verificationGasLimit: 100000, // default verification gas. will add create2 cost (3200+200*length) if initCode exists
-  preVerificationGas: 21000, // should also cover calldata cost.
+  preVerificationGas: 50000, // should also cover calldata cost.
   maxFeePerGas: 0,
-  maxPriorityFeePerGas: 1e9,
+  maxPriorityFeePerGas: 1e10,
   paymasterAndData: '0x',
   signature: '0x'
 }
@@ -229,6 +229,7 @@ export async function fillUserOp (op: Partial<UserOperation>, entryPoint?: Entry
     // TODO: we don't add overhead, which is ~21000 for a single TX, but much lower in a batch.
     op2.preVerificationGas = callDataCost(packUserOp(op2, false))
   }
+  op.preVerificationGas = 50000
   return op2
 }
 
