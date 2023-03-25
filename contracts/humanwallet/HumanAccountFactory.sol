@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "./HumanAccount.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
 /**
@@ -13,24 +14,19 @@ import "hardhat/console.sol";
  * The factory's createAccount returns the target account address even if it is already installed.
  * This way, the entryPoint.getSenderAddress() can be called either before or after the account is created.
  */
-contract HumanAccountFactory {
+contract HumanAccountFactory is Ownable {
     HumanAccount public immutable accountImplementation;
-
+    IEntryPoint entryPoint;
     address public aclModule;
-
     mapping(string => address) public usernameToAddress;
-
-    modifier onlyACLModule() {
-        require(msg.sender == aclModule, "only ACLModule can call this method");
-        _;
-    }
 
     event DeployedHumanAccount(address account, string username);
 
-    constructor(IEntryPoint _entryPoint) {
+    constructor(IEntryPoint _entryPoint, address _owner) {
         accountImplementation = new HumanAccount(_entryPoint, address(this));
+        entryPoint = _entryPoint;
 
-        console.log("HumanAccountFactory deployed");
+        transferOwnership(_owner);
     }
 
     /**
@@ -94,5 +90,21 @@ contract HumanAccountFactory {
                     )
                 )
             );
+    }
+
+    function depositEth() public payable {}
+
+    function withdrawEth(uint256 amount) public onlyOwner {
+        payable(owner()).transfer(amount);
+    }
+
+    // add stake function that stakes eth in the entrypoint
+    // stake the full balance of factory
+    function stakeToEntryPoint() public onlyOwner {
+        entryPoint.addStake{ value: address(this).balance }(300);
+    }
+
+    function withdrawStake() public onlyOwner {
+        entryPoint.withdrawStake(payable(owner()));
     }
 }

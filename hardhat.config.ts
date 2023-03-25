@@ -69,7 +69,8 @@ const config: HardhatUserConfig = {
     // github action starts localgeth service, for gas calculations
     localgeth: { url: 'http://localgeth:8545' },
     goerli: {
-      ...getNetwork('goerli'),
+      // ...getNetwork('goerli'),
+      url: process.env.GOERLI_URL ?? '',
       accounts: { mnemonic: process.env.MNEMONIC ?? mnemonic }
     },
     sepolia: getNetwork('sepolia'),
