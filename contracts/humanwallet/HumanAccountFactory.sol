@@ -20,7 +20,7 @@ contract HumanAccountFactory is Ownable {
     address public aclModule;
     mapping(string => address) public usernameToAddress;
 
-    event DeployedHumanAccount(address account, string username);
+    event DeployedHumanAccount(address account, string username, address owner);
 
     constructor(IEntryPoint _entryPoint, address _owner) {
         accountImplementation = new HumanAccount(_entryPoint, address(this));
@@ -61,7 +61,7 @@ contract HumanAccountFactory is Ownable {
             )
         );
 
-        emit DeployedHumanAccount(address(ret), accountUsername);
+        emit DeployedHumanAccount(address(ret), accountUsername, ownerKey);
 
         console.log("DeployedHumanAccount %s %s", address(ret), accountUsername);
 
