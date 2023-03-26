@@ -104,6 +104,10 @@ contract HumanAccountFactory is Ownable {
         entryPoint.addStake{ value: address(this).balance }(300);
     }
 
+    function unlockStake() public onlyOwner {
+        entryPoint.unlockStake();
+    }
+
     function withdrawStake() public onlyOwner {
         entryPoint.withdrawStake(payable(owner()));
     }

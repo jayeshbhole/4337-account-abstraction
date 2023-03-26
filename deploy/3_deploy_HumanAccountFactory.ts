@@ -28,8 +28,10 @@ const deployHumanAccountFactory: DeployFunction = async function (
   const depositEth = await humanAccountFactory.depositEth({
     value: ethers.utils.parseEther('0.1')
   })
-
   await depositEth.wait()
+
+  const stakeToEntryPoint = await humanAccountFactory.stakeToEntryPoint()
+  await stakeToEntryPoint.wait()
 }
 
 export default deployHumanAccountFactory
