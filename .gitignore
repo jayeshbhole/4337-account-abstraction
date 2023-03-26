@@ -19,3 +19,4 @@ artifacts
 /contracts/dist/
 /contracts/types/
 .env
+/subgraph/build/

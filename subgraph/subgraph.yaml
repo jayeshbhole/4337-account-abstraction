@@ -1,0 +1,26 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: HumanAccountFactory
+    network: goerli
+    source:
+      address: '0xd1f3a6AD6e13625134281b51F7e77Ffe54520571'
+      abi: HumanAccountFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - DeployedHumanAccount
+        - OwnershipTransferred
+      abis:
+        - name: HumanAccountFactory
+          file: ./abis/HumanAccountFactory.json
+      eventHandlers:
+        - event: DeployedHumanAccount(address,string,address)
+          handler: handleDeployedHumanAccount
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+      file: ./src/human-account-factory.ts
