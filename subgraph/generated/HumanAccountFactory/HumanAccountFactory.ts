@@ -395,6 +395,32 @@ export class TransferOwnershipCall__Outputs {
   }
 }
 
+export class UnlockStakeCall extends ethereum.Call {
+  get inputs(): UnlockStakeCall__Inputs {
+    return new UnlockStakeCall__Inputs(this);
+  }
+
+  get outputs(): UnlockStakeCall__Outputs {
+    return new UnlockStakeCall__Outputs(this);
+  }
+}
+
+export class UnlockStakeCall__Inputs {
+  _call: UnlockStakeCall;
+
+  constructor(call: UnlockStakeCall) {
+    this._call = call;
+  }
+}
+
+export class UnlockStakeCall__Outputs {
+  _call: UnlockStakeCall;
+
+  constructor(call: UnlockStakeCall) {
+    this._call = call;
+  }
+}
+
 export class WithdrawEthCall extends ethereum.Call {
   get inputs(): WithdrawEthCall__Inputs {
     return new WithdrawEthCall__Inputs(this);

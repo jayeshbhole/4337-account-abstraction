@@ -10,7 +10,7 @@ type HumanAccount @entity {
   address: Bytes!
   username: String!
   owner: Bytes!
-  devices: [Bytes!]!
+  signers: [Bytes!]!
 }
 
 type HumanAccountFactory @entity {

@@ -69,13 +69,13 @@ export class HumanAccount extends Entity {
     this.set("owner", Value.fromBytes(value));
   }
 
-  get devices(): Array<Bytes> {
-    let value = this.get("devices");
+  get signers(): Array<Bytes> {
+    let value = this.get("signers");
     return value!.toBytesArray();
   }
 
-  set devices(value: Array<Bytes>) {
-    this.set("devices", Value.fromBytesArray(value));
+  set signers(value: Array<Bytes>) {
+    this.set("signers", Value.fromBytesArray(value));
   }
 }
 

@@ -6,8 +6,9 @@ dataSources:
     name: HumanAccountFactory
     network: goerli
     source:
-      address: '0xd1f3a6AD6e13625134281b51F7e77Ffe54520571'
+      address: '0xA1c7Be6dab92C16C70400cb98e651E3ff94b7c37'
       abi: HumanAccountFactory
+      startBlock: 8721091
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
