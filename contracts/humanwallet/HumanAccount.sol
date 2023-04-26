@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import "../core/BaseAccount.sol";
+import "../samples/callback/TokenCallbackHandler.sol";
 import "hardhat/console.sol";
 
 /**
@@ -18,25 +19,19 @@ import "hardhat/console.sol";
  *  has execute, eth handling methods
  *  has a single signer that can send requests through the entryPoint.
  */
-contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
+contract HumanAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, Initializable {
     using ECDSA for bytes32;
 
-    //filler member, to push the nonce and owner to the same slot
-    // the "Initializeble" class takes 2 bytes in the first slot
-    bytes28 private _filler;
-
-    //explicit sizes of nonce, to fit a single storage cell with "ownerKey"
-    uint96 private _nonce;
     address public owner;
-    string public username;
 
+    IEntryPoint private immutable _entryPoint;
+
+    string public username;
     address private immutable factory;
 
     // access control for device and guardian keys
     mapping(address => bool) public deviceKeys;
     // mapping(address => bool) public guardianKeys;
-
-    IEntryPoint private immutable _entryPoint;
 
     event HumanAccountInitialized(IEntryPoint indexed entryPoint, string indexed username);
     event HumanAccountOwnerChanged(IEntryPoint indexed entryPoint, string indexed newOwner);
@@ -48,11 +43,6 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
     modifier onlyFactory() {
         require(msg.sender == factory, "only factory");
         _;
-    }
-
-    /// @inheritdoc BaseAccount
-    function nonce() public view virtual override returns (uint256) {
-        return _nonce;
     }
 
     /// @inheritdoc BaseAccount
@@ -151,11 +141,6 @@ contract HumanAccount is BaseAccount, UUPSUpgradeable, Initializable {
             msg.sender == address(entryPoint()) || msg.sender == owner,
             "account: not Owner or EntryPoint"
         );
-    }
-
-    /// implement template method of BaseAccount
-    function _validateAndUpdateNonce(UserOperation calldata userOp) internal override {
-        require(_nonce++ == userOp.nonce, "account: invalid nonce");
     }
 
     /// implement template method of BaseAccount
